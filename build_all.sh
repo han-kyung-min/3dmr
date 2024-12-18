@@ -20,7 +20,7 @@ do
 			catkin_init_workspace
 			cd ..	
 		fi
-		catkin build -DCMAKE_BUILD_TYPE=Release
+		catkin build -DPYTHON_EXECUTABLE=/usr/bin/python3 -DCMAKE_BUILD_TYPE=Release
 		cd $MR3D_HOME
 		source source_all.bash 
     fi
