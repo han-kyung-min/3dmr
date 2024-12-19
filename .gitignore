@@ -32,3 +32,8 @@ models.gazebosim.org
 laser_slam_ws
 
 screenlog.0
+
+.cproject
+.metadata/
+.project
+.settings/

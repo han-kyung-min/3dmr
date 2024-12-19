@@ -38,10 +38,10 @@ worlds=(
 # select the world for the exploration simulation: specify here the world name you want
 WORLD_NAME="rooms2" 
 
-export NUM_ROBOTS=1 #"${worlds[$WORLD_NAME]}"
-NUM_ROBOTS=1 # you could also override NUM_ROBOTS for debugging or other reasons 
+export NUM_ROBOTS=1 # hkm  #"${worlds[$WORLD_NAME]}"
+NUM_ROBOTS=1 # hkm you could also override NUM_ROBOTS for debugging or other reasons 
 
-export ENABLE_MULTI_ROBOT_COORDINATION="false" #"true" # true or false  enable/disable multi-robot coordination on path-planning level
+export ENABLE_MULTI_ROBOT_COORDINATION="false" #hkm #"true" # true or false  enable/disable multi-robot coordination on path-planning level
 
 export ENABLE_EXPLORATION=1  # enable/disable exploration agent 
 
