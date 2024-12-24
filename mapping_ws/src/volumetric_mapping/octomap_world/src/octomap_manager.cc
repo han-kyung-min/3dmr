@@ -168,6 +168,9 @@ void OctomapManager::setParametersFromROS() {
 
   // Set the parent class parameters.
   setOctomapParameters(params);
+
+  // hkm
+  m_gridmap.info.resolution = params.resolution ;
 }
 
 bool OctomapManager::setQFromParams(std::vector<double>* Q_vec) {

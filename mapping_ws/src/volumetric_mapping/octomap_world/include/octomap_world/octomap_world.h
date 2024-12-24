@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <std_msgs/ColorRGBA.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <volumetric_map_base/world_base.h>
+#include <nav_msgs/OccupancyGrid.h>	// by hkm
 
 namespace volumetric_mapping {
 
@@ -268,6 +269,10 @@ public:
   // Temporary variable for KeyRay since it resizes it to a HUGE value by
   // default. Thanks a lot to @xiaopenghuang for catching this.
   octomap::KeyRay key_ray_;
+
+  // 2D gridmap  by hkm
+  nav_msgs::OccupancyGrid m_gridmap;
+
 };
 
 }  // namespace volumetric_mapping
