@@ -104,6 +104,7 @@ void PathPlanner::setPublishers()
 {
     markerArrPub_ = n_.advertise<visualization_msgs::MarkerArray>("/path_planner/visited_nodes", 1);
     localPathPub_ = n_.advertise<nav_msgs::Path>("/path_planner/localPath", 1);
+    markerGoalArrPub_ = n_.advertise<visualization_msgs::MarkerArray>("/path_planner/published_goals", 1);
 }
 
 bool sortProbFunction(const PathPlanner::IdxProbability& i, const PathPlanner::IdxProbability& j)
@@ -375,6 +376,7 @@ void PathPlanner::sampleFollowers()
 
     if(b_publish_markers) markerArrPub_.publish(markerArr_);
 
+
     //Add the current point to the path
 }
 
@@ -556,6 +558,28 @@ bool PathPlanner::setGoal(pcl::PointXYZI& goal_in)
     {
         markerArr_.markers[i].action = visualization_msgs::Marker::DELETE;
     }
+
+    // adding published goal marker   // hkm
+    {
+        visualization_msgs::Marker marker;
+        marker.header.frame_id = "map";
+        marker.header.stamp = ros::Time::now();
+        marker.type = visualization_msgs::Marker::SPHERE;
+        marker.action = visualization_msgs::Marker::ADD;
+        marker.scale.x = marker.scale.y = marker.scale.z = 0.5;
+        marker.color.a = 1.0;
+        marker.color.r = 1.0;
+        marker.color.g = 0.0;
+        marker.color.b = 1.0;
+        marker.pose.position.x = goal_in.x;
+        marker.pose.position.y = goal_in.y;
+        marker.pose.position.z = goal_in.z;
+        marker.id = markerGoalArr_.markers.size() + 1;
+        markerGoalArr_.markers.push_back(marker);
+    }
+
+    // Publish markerGoal
+    markerGoalArrPub_.publish(markerGoalArr_);
 
     return res;
 }

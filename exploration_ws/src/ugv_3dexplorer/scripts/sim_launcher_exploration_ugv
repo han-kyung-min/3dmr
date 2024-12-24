@@ -74,6 +74,8 @@ echo "ENABLE_EXPL_AGENT: $ENABLE_EXPL_AGENT"
 
 #open_term "ugv$ROBOT_ID_path_planner_term" "echo path planner ugv$ROBOT_ID; rosrun path_planner sim_launcher_ugv $ROBOT_ID $ENABLE_MULTI_ROBOT_COORDINATION; bash " &
 rosrun path_planner sim_launcher_ugv $ROBOT_ID $ENABLE_MULTI_ROBOT_COORDINATION
+
+#rosrun path_planner travel_tracker.py  # path tracker by hkm
 sleep 8
 
 ########################################################################################################

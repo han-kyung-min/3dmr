@@ -78,5 +78,5 @@ threshold_min: 0.12
 threshold_max: 0.97
 threshold_occupancy: 0.7
 visualize_max_z: 1000
-sensor_max_range: 2 #hkm 5.0
+sensor_max_range: 5 #hkm 5.0
 map_publish_frequency: 1.0

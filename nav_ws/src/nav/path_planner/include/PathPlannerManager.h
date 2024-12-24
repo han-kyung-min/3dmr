@@ -29,7 +29,7 @@
 
 #include <pcl/filters/crop_box.h>
 #include <std_msgs/Bool.h>
-
+#include <nav_msgs/Odometry.h>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 
@@ -231,7 +231,7 @@ protected:
     BaseCostFunction::CostFunctionType cost_function_type_; 
     
     PlannerStatus planning_status_; 
-    
+
 };
 
 

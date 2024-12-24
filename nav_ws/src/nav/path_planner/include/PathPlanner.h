@@ -204,6 +204,11 @@ private: // private data
     //Publisher for merkerArr
     ros::Publisher markerArrPub_;
 
+    //makerArray of goal nodes
+    visualization_msgs::MarkerArray markerGoalArr_;
+    //Publisher for markergoal
+    ros::Publisher markerGoalArrPub_;
+
     //Publisher for path
     ros::Publisher localPathPub_;
     

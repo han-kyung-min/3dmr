@@ -51,6 +51,9 @@
 #include "PathManager.h"
 #include "LowPassFilter.h"
 #include "CmdVels.h"
+#include <fstream>
+
+#include <visualization_msgs/MarkerArray.h>
 
 template<typename T>
 T getParam(ros::NodeHandle& n, const std::string& name, const T& defaultValue)
@@ -259,6 +262,14 @@ protected:
     
     boost::recursive_mutex action_mutex;    
     
+    // hkm
+    std::ofstream m_fout_traj;
+    int mn_cnt ;
+    double mf_prev_time ;
+    visualization_msgs::MarkerArray markerTrajArr_;
+    //Publisher for markergoal
+    ros::Publisher markerTrajArrPub_;
+
 public:   /// <  laser proximity checker integration 
         
     std::string laser_proximity_topic_; 

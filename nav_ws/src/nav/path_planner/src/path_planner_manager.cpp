@@ -140,6 +140,9 @@ boost::recursive_mutex rss_mutex;
 //Get the markerArray of visited node
 visualization_msgs::MarkerArray rss_markerArr;
 
+// by hkm
+std::vector<nav_msgs::Odometry> robot_traj ;
+double prev_time = 0;
 
 ///	\class GlobalPath
 ///	\author Luigi Freda
@@ -282,7 +285,7 @@ void goalAbortCallback(std_msgs::Bool msg);
 void resetGlobalPath();
 void rssManagement(const sensor_msgs::PointCloud2& traversability_msg);
 void rssPublishGoalMarker(double x, double y, double z);
-
+void odomCallback(const nav_msgs::Odometry& odom);
 /// < functions 
 
 template<typename T>
@@ -1149,6 +1152,19 @@ void rssMinSignalValueCallback(const std_msgs::Int32& msg)
     ROS_INFO_STREAM("rssMinSignalValueCallback(): rss min value " << min_rssi_signal);   
 }
 
+//void odomCallback(const nav_msgs::Odometry& odom)
+//{
+//	double curr_time =ros::Time::now().toSec();
+//	double ftime_diff = fabs(curr_time - prev_time) ;
+//	ROS_ERROR("got here \n");
+//	ROS_ASSERT(0);
+//	if ( ftime_diff > 1 )
+//	{
+//		ROS_INFO("robot position %f %f \n", odom.pose.pose.position.x, odom.pose.pose.position.y );
+//		robot_traj.push_back(odom);
+//	}
+//}
+
 void rssPublishGoalMarker(double x, double y, double z)
 {
     
@@ -1284,6 +1300,8 @@ int main(int argc, char **argv)
     
     ros::Subscriber rss_min_signal_value_sub = n.subscribe("/rss_min_value", 1, rssMinSignalValueCallback);
     
+    // hkm
+    //ros::Subscriber rpose_sub = n.subscribe("/vrep/ugv1/odom", 1, odomCallback);
     
     /// < Services 
     ros::ServiceServer service = n.advertiseService(path_planning_service_name, pathPlanningServiceCallback);

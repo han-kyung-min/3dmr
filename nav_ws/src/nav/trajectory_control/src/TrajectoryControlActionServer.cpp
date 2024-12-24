@@ -24,7 +24,7 @@
 #include <nifti_teleop/Acquire.h>
 #include <nifti_teleop/Release.h>
 
-
+#define SAMPLING_TIME (1.0) // 1 sec
 #define VERBOSE 1
 
 
@@ -219,6 +219,8 @@ velocity_before_reduction_(0.)
 
     adapt_trav_vel_sub_ = node_.subscribe(adapt_trav_vel_topic_, 1, &TrajectoryControlActionServer::adaptTravVelCallback, this);
 
+
+
     if(enable_flippers_)
     {
         //imu_sub = node.subscribe(imu_topic,1,&TrajectoryControlActionServer::imuDataCallback,this);
@@ -280,10 +282,18 @@ velocity_before_reduction_(0.)
     local_path_msg_.header.stamp = ros::Time::now();
     
     b_closest_obst_vel_reduction_enable_ = true;
+
+    // hkm
+    m_fout_traj = std::ofstream( "/home/hankm/results/nextbestview/traj.txt");
+    mn_cnt = 0 ;
+    mf_prev_time = 0;
+
+    markerTrajArrPub_ = node_.advertise<visualization_msgs::MarkerArray>("/robot_traj_marker", 1);
 }
 
 TrajectoryControlActionServer::~TrajectoryControlActionServer()
 {
+	m_fout_traj.close();
 }
 
 void TrajectoryControlActionServer::odomMsgToStampedTransform(nav_msgs::Odometry pose_odometry_msg, tf::StampedTransform& pose_stamped_tf)
@@ -939,6 +949,37 @@ void TrajectoryControlActionServer::imuOdomCallback(const nav_msgs::OdometryCons
     }
 
     getRealRobotPoseB(displacement_, tf_robot_pose_map_, tf_robot_poseB_map_);
+
+    // by hkm
+    double curr_time = ros::Time::now().toSec();
+    double ftime_diff = fabs( curr_time - mf_prev_time ) ;
+    double fx = tf_robot_pose_odom_.getOrigin().x() ;
+    double fy = tf_robot_pose_odom_.getOrigin().y() ;
+    if( ftime_diff > static_cast<double>(SAMPLING_TIME)  )
+    {
+		m_fout_traj << mn_cnt << " " << fx << " " << fy << std::endl;
+
+	    {
+	        visualization_msgs::Marker marker;
+	        marker.header.frame_id = "map";
+	        marker.header.stamp = ros::Time::now();
+	        marker.type = visualization_msgs::Marker::SPHERE;
+	        marker.action = visualization_msgs::Marker::ADD;
+	        marker.scale.x = marker.scale.y = marker.scale.z = 0.15;
+	        marker.color.a = 1.0;
+	        marker.color.r = 1.0;
+	        marker.color.g = 0.0;
+	        marker.color.b = 1.0;
+	        marker.pose.position.x = fx;
+	        marker.pose.position.y = fy;
+	        marker.pose.position.z = 0;
+	        marker.id = markerTrajArr_.markers.size() + 1;
+	        markerTrajArr_.markers.push_back(marker);
+	    }
+		mn_cnt++;
+		mf_prev_time = curr_time;
+	    markerTrajArrPub_.publish(markerTrajArr_);
+    }
 }
 
 void TrajectoryControlActionServer::executeCallback(const trajectory_control_msgs::TrajectoryControlGoalConstPtr &goal_msg)
