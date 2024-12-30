@@ -5,7 +5,7 @@
     <arg name="robot_name" default="ugv1" />
     <arg name="simulator" default="/vrep" />
 
-    <arg name="sensor_max_range" default="15.0" /> <!-- was 20, decreased to 15 for exploration and decreasing memory load -->
+    <arg name="sensor_max_range" default="5.0" /> <!-- was 20, decreased to 15 (default) for exploration and decreasing memory load -->
 
     <arg name="laser_frame_name" default="$(arg robot_name)/laser"/>  
     
@@ -27,7 +27,7 @@
         <param name = "tf_cache_length" value = "$(arg tf_cache_length)" />
         <param name = "tf_frame" value = "map" />
         <param name = "robot_frame" value = "$(arg robot_name)/base_link" />
-        <param name = "resolution" value = "0.075" /> <!-- was 0.075, decreased to 0.08 for exploration -->
+        <param name = "resolution" value = "0.05" /> <!-- default: 0.075, decreased to 0.08 for exploration -->
         
         <param name = "latch_topics" value = "false" /> <!-- in order to avoid recomputing all the visualization markers when there are no subscribers -->
         
@@ -50,6 +50,9 @@
         <!-- <param name = "treat_unknown_as_occupied" value = "true" /> -->
         <!-- <param name = "change_detection_enabled" value = "false" /> -->
         <!-- param name = "dynamics_detection_enabled" value = "true" /> -->
+        
+        <param name = "projected_map_zmax" value = "0.4" />
+        <param name = "projected_map_zmin" value = "0.1" />
         
         <!-- Input -->
         <remap from = "pointcloud" to = "$(arg octomap_cloud_in)" />

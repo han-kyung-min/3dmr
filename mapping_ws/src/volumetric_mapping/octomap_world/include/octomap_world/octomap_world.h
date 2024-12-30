@@ -244,9 +244,12 @@ public:
   // Helper functions for building up a map from sensor data.
   void castRay(const octomap::point3d& sensor_origin,
                const octomap::point3d& point, octomap::KeySet* free_cells,
-               octomap::KeySet* occupied_cells) const;
+               octomap::KeySet* occupied_cells) ; //const;
   void updateOccupancy(octomap::KeySet* free_cells,
                        octomap::KeySet* occupied_cells);
+
+  //void handlePreNodeTraversal( const ros::Time& rostime ); // hkm
+
   bool isValidPoint(const cv::Vec3f& point) const;
 
   void setOctomapFromBinaryMsg(const octomap_msgs::Octomap& msg);
@@ -270,9 +273,52 @@ public:
   // default. Thanks a lot to @xiaopenghuang for catching this.
   octomap::KeyRay key_ray_;
 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////
   // 2D gridmap  by hkm
-  nav_msgs::OccupancyGrid m_gridmap;
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////
+  inline static void updateMinKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& otmin)
+  {
+    for (unsigned i = 0; i < 3; ++i)
+  	  otmin[i] = std::min(in[i], otmin[i]);
+  };
 
+  inline static void updateMaxKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& otmax)
+  {
+    for (unsigned i = 0; i < 3; ++i)
+  	  otmax[i] = std::max(in[i], otmax[i]);
+  };
+
+//  /// Test if key is within update area of map (2D, ignores height)
+//  inline bool isInUpdateBBX(const octomap::OcTreeT::iterator& it) const {
+//    // 2^(tree_depth-depth) voxels wide:
+//    unsigned voxelWidth = (1 << (m_maxTreeDepth - it.getDepth()));
+//    octomap::OcTreeKey key = it.getIndexKey(); // lower corner of voxel
+//    return (key[0] + voxelWidth >= m_updateBBXMin[0]
+//            && key[1] + voxelWidth >= m_updateBBXMin[1]
+//            && key[0] <= m_updateBBXMax[0]
+//            && key[1] <= m_updateBBXMax[1]);
+//  }
+  void adjustMapData(nav_msgs::OccupancyGrid& map, const nav_msgs::MapMetaData& oldMapInfo) const;
+
+  inline bool mapChanged(const nav_msgs::MapMetaData& oldMapInfo, const nav_msgs::MapMetaData& newMapInfo) {
+    return (    oldMapInfo.height != newMapInfo.height
+                || oldMapInfo.width != newMapInfo.width
+                || oldMapInfo.origin.position.x != newMapInfo.origin.position.x
+                || oldMapInfo.origin.position.y != newMapInfo.origin.position.y);
+  }
+
+  nav_msgs::OccupancyGrid m_gridmap;
+  uint32_t m_treeDepth ;  // is set as 16 by default in OcTreeBaseImp
+  uint32_t m_maxTreeDepth ;
+  octomap::OcTreeKey m_updateBBXMin;
+  octomap::OcTreeKey m_updateBBXMax;
+  nav_msgs::MapMetaData m_prev_mapinfo ;
+  octomap::OcTreeKey m_paddedMinKey, m_paddedMaxKey;
+  unsigned m_multires2DScale ;
+  bool m_projectCompleteMap;
+  bool m_incrementalUpdate ;
+
+  double m_minSizeX, m_minSizeY;
 };
 
 }  // namespace volumetric_mapping

@@ -17,6 +17,7 @@
     
     <arg name="respawn_value" default="false" /> <!-- boolean: true, false -->
     
+    <arg name="traj_file_path" default="/home/hankm/Desktop/traj.txt" />
     
     <node name="trajectory_control_action_server_$(arg robot_name)" pkg="trajectory_control" type="trajectory_control" respawn="$(arg respawn_value)" output="screen">
 	  
@@ -59,7 +60,8 @@
         <param name = "tracks_vel_cmd_topic" value = "$(arg simulator)/$(arg robot_name)/tracks_vel_cmd"/>
 	 
         <!--param name="robot_path_topic" value="$(arg simulator)/$(arg robot_name)/robot_path" /-->
-	 
+        <param name = "traj_file_path" value = "$(arg traj_file_path)"/>
+        
         <remap from = "/robot_pp_path" to = "$(arg simulator)/$(arg robot_name)/robot_pp_path"/>
 
         <remap from = "/robot_path" to = "$(arg simulator)/$(arg robot_name)/robot_path"/>

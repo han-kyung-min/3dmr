@@ -207,6 +207,17 @@ velocity_before_reduction_(0.)
     ref_error_for_stopping_path_manager_step =  getParam<double>(param_node_, "ref_error_for_stopping_path_manager_step", kRefErrorForStoppingPathManagerStep);
 
 
+    // hkm
+    mstr_traj_path = getParam<std::string>(param_node_, "traj_file_path", "/traj_file_path");
+    //ros::param::param<std::string>("/expl_planner_ugv1/traj_file_path", mstr_traj_path, "/home/hankm/results/traj.txt");
+    //ros::param::get("/expl_planner_ugv1/traj_file_path", mstr_traj_path);
+    m_fstream_traj = std::ofstream(mstr_traj_path);
+    ROS_INFO("\n out traj path: %s \n", mstr_traj_path.c_str());
+    mn_cnt = 0 ;
+    mf_prev_time = 0;
+    markerTrajArrPub_ = node_.advertise<visualization_msgs::MarkerArray>("/robot_traj_marker", 1);
+    // hkm
+
     /// < setup subcribers 
 
     robot_pp_path_sub_ = node_.subscribe("/robot_pp_path", 1, &TrajectoryControlActionServer::robotPathCallBack, this);
@@ -283,17 +294,11 @@ velocity_before_reduction_(0.)
     
     b_closest_obst_vel_reduction_enable_ = true;
 
-    // hkm
-    m_fout_traj = std::ofstream( "/home/hankm/results/nextbestview/traj.txt");
-    mn_cnt = 0 ;
-    mf_prev_time = 0;
-
-    markerTrajArrPub_ = node_.advertise<visualization_msgs::MarkerArray>("/robot_traj_marker", 1);
 }
 
 TrajectoryControlActionServer::~TrajectoryControlActionServer()
 {
-	m_fout_traj.close();
+	m_fstream_traj.close();
 }
 
 void TrajectoryControlActionServer::odomMsgToStampedTransform(nav_msgs::Odometry pose_odometry_msg, tf::StampedTransform& pose_stamped_tf)
@@ -957,7 +962,7 @@ void TrajectoryControlActionServer::imuOdomCallback(const nav_msgs::OdometryCons
     double fy = tf_robot_pose_odom_.getOrigin().y() ;
     if( ftime_diff > static_cast<double>(SAMPLING_TIME)  )
     {
-		m_fout_traj << mn_cnt << " " << fx << " " << fy << std::endl;
+    	m_fstream_traj << mn_cnt << " " << fx << " " << fy << std::endl;
 
 	    {
 	        visualization_msgs::Marker marker;

@@ -57,6 +57,15 @@ OctomapWorld::OctomapWorld() : OctomapWorld(OctomapParameters()) {}
 OctomapWorld::OctomapWorld(const OctomapParameters& params)
     : robot_size_(Eigen::Vector3d::Ones()) {
   setOctomapParameters(params);
+
+  // hkm
+  m_gridmap.info.resolution = params.resolution ;
+  m_treeDepth = octree_->getTreeDepth();  // is set as 16 by default in OcTreeBaseImp
+  m_maxTreeDepth = m_treeDepth;
+  m_minSizeX = 0.0;
+  m_minSizeY = 0.0; // hkm
+
+  ROS_INFO("OctomapWorld is initialized \n");
 }
 
 void OctomapWorld::resetMap() {
@@ -88,9 +97,11 @@ void OctomapWorld::setOctomapParameters(const OctomapParameters& params) {
   // Copy over all the parameters for future use (some are not used just for
   // creating the octree).
   params_ = params;
+
+
 }
 
-void OctomapWorld::insertPointcloudIntoMapImpl(
+void OctomapWorld::insertPointcloudIntoMapImpl(	// this func is called
     const Transformation& T_G_sensor,
     const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
   // Remove NaN values, if any.
@@ -160,7 +171,7 @@ void OctomapWorld::insertProjectedDisparityIntoMapImpl(
 void OctomapWorld::castRay(const octomap::point3d& sensor_origin,
                            const octomap::point3d& point,
                            octomap::KeySet* free_cells,
-                           octomap::KeySet* occupied_cells) const {
+                           octomap::KeySet* occupied_cells) { //const {  // by hkm
   CHECK_NOTNULL(free_cells);
   CHECK_NOTNULL(occupied_cells);
 
@@ -168,7 +179,8 @@ void OctomapWorld::castRay(const octomap::point3d& sensor_origin,
       (point - sensor_origin).norm() <= params_.sensor_max_range) {
     // Cast a ray to compute all the free cells.
     octomap::KeyRay key_ray;
-    if (octree_->computeRayKeys(sensor_origin, point, key_ray)) {
+    if (octree_->computeRayKeys(sensor_origin, point, key_ray))
+    {
 #if !USE_NEW_FREE_SPACE_MANAGEMENT
       free_cells->insert(key_ray.begin(), key_ray.end());
 #else
@@ -186,9 +198,14 @@ void OctomapWorld::castRay(const octomap::point3d& sensor_origin,
 #endif
     }
     // Mark endpoing as occupied.
-    octomap::OcTreeKey key;
+    octomap::OcTreeKey key; // endkey
     if (octree_->coordToKeyChecked(point, key)) {
-      occupied_cells->insert(key);
+        free_cells->insert(key);
+        updateMinKey(key, m_updateBBXMin);
+        updateMaxKey(key, m_updateBBXMax);
+        for (unsigned i = 0; i < 3; ++i)
+        	m_updateBBXMax[i] = std::max(key[i], m_updateBBXMax[i]);
+		occupied_cells->insert(key);
     }
   } else {
     // If the ray is longer than the max range, just update free space.
@@ -211,8 +228,55 @@ void OctomapWorld::castRay(const octomap::point3d& sensor_origin,
           free_cells->insert(key);
         }
       }
+
+      octomap::OcTreeKey endKey;
+      if (octree_->coordToKeyChecked(new_end, endKey))
+      {
+        free_cells->insert(endKey);
+        updateMinKey(endKey, m_updateBBXMin);
+        updateMaxKey(endKey, m_updateBBXMax);
+      } else{
+        ROS_ERROR_STREAM("Could not generate Key for endpoint "<<new_end);
+      }
 #endif
     }
+  }
+
+// update 2d gridmap occupancies
+
+}
+
+void OctomapWorld::adjustMapData(nav_msgs::OccupancyGrid& map, const nav_msgs::MapMetaData& oldMapInfo) const{
+  if (map.info.resolution != oldMapInfo.resolution){
+    //ROS_ERROR("Resolution of map changed, cannot be adjusted");
+    return;
+  }
+
+  int i_off = int((oldMapInfo.origin.position.x - map.info.origin.position.x)/map.info.resolution +0.5);
+  int j_off = int((oldMapInfo.origin.position.y - map.info.origin.position.y)/map.info.resolution +0.5);
+
+  if (i_off < 0 || j_off < 0
+      || oldMapInfo.width  + i_off > map.info.width
+      || oldMapInfo.height + j_off > map.info.height)
+  {
+    //ROS_ERROR("New 2D map does not contain old map area, this case is not implemented");
+    return;
+  }
+
+  nav_msgs::OccupancyGrid::_data_type oldMapData = map.data;
+
+  map.data.clear();
+  // init to unknown:
+  map.data.resize(map.info.width * map.info.height, -1);
+
+  nav_msgs::OccupancyGrid::_data_type::iterator fromStart, fromEnd, toStart;
+
+  for (int j =0; j < int(oldMapInfo.height); ++j ){
+    // copy chunks, row by row:
+    fromStart = oldMapData.begin() + j*oldMapInfo.width;
+    fromEnd = fromStart + oldMapInfo.width;
+    toStart = map.data.begin() + ((j+j_off)*m_gridmap.info.width + i_off); // copying old map to new map
+    copy(fromStart, fromEnd, toStart);
   }
 }
 
@@ -250,6 +314,112 @@ void OctomapWorld::updateOccupancy(octomap::KeySet* free_cells,
   }
   octree_->updateInnerOccupancy();
 }
+//
+//void OctomapWorld::handlePreNodeTraversal( const ros::Time& rostime )
+//{
+//    // init projected 2D map:
+//    m_gridmap.header.frame_id = "map"; // world_frame_;
+//    m_gridmap.header.stamp = rostime;
+//    nav_msgs::MapMetaData oldMapInfo = m_gridmap.info;
+//
+//    // TODO: move most of this stuff into c'tor and init map only once (adjust if size changes)
+//    double minX, minY, minZ, maxX, maxY, maxZ;
+//    octree_->getMetricMin(minX, minY, minZ);
+//    octree_->getMetricMax(maxX, maxY, maxZ);
+//
+//    octomap::point3d minPt(minX, minY, minZ);
+//    octomap::point3d maxPt(maxX, maxY, maxZ);
+//    octomap::OcTreeKey minKey = octree_->coordToKey(minPt, m_maxTreeDepth);
+//    octomap::OcTreeKey maxKey = octree_->coordToKey(maxPt, m_maxTreeDepth);
+//
+//    ROS_DEBUG("MinKey: %d %d %d / MaxKey: %d %d %d", minKey[0], minKey[1], minKey[2], maxKey[0], maxKey[1], maxKey[2]);
+//
+//    // add padding if requested (= new min/maxPts in x&y):
+//    double halfPaddedX = 0.5*m_minSizeX;
+//    double halfPaddedY = 0.5*m_minSizeY;
+//    minX = std::min(minX, -halfPaddedX);
+//    maxX = std::max(maxX, halfPaddedX);
+//    minY = std::min(minY, -halfPaddedY);
+//    maxY = std::max(maxY, halfPaddedY);
+//    minPt = octomap::point3d(minX, minY, minZ);
+//    maxPt = octomap::point3d(maxX, maxY, maxZ);
+//
+//    octomap::OcTreeKey paddedMaxKey;
+//    if (!octree_->coordToKeyChecked(minPt, m_maxTreeDepth, m_paddedMinKey)){
+//      ROS_ERROR("Could not create padded min OcTree key at %f %f %f", minPt.x(), minPt.y(), minPt.z());
+//      return;
+//    }
+//    if (!octree_->coordToKeyChecked(maxPt, m_maxTreeDepth, paddedMaxKey)){
+//      ROS_ERROR("Could not create padded max OcTree key at %f %f %f", maxPt.x(), maxPt.y(), maxPt.z());
+//      return;
+//    }
+//
+//    ROS_DEBUG("Padded MinKey: %d %d %d / padded MaxKey: %d %d %d", m_paddedMinKey[0], m_paddedMinKey[1], m_paddedMinKey[2], paddedMaxKey[0], paddedMaxKey[1], paddedMaxKey[2]);
+//    assert(paddedMaxKey[0] >= maxKey[0] && paddedMaxKey[1] >= maxKey[1]);
+//
+//    m_multires2DScale = 1 << (m_treeDepth - m_maxTreeDepth);
+//    m_gridmap.info.width = (paddedMaxKey[0] - m_paddedMinKey[0])/m_multires2DScale +1;
+//    m_gridmap.info.height = (paddedMaxKey[1] - m_paddedMinKey[1])/m_multires2DScale +1;
+//
+//    int mapOriginX = minKey[0] - m_paddedMinKey[0];
+//    int mapOriginY = minKey[1] - m_paddedMinKey[1];
+//    assert(mapOriginX >= 0 && mapOriginY >= 0);
+//
+//    // might not exactly be min / max of octree:
+//    octomap::point3d origin = octree_->keyToCoord(m_paddedMinKey, m_treeDepth);
+//    double gridRes = octree_->getNodeSize(m_maxTreeDepth);
+//    m_projectCompleteMap = (!m_incrementalUpdate || (std::abs(gridRes-m_gridmap.info.resolution) > 1e-6));
+//    m_gridmap.info.resolution = gridRes;
+//    m_gridmap.info.origin.position.x = origin.x() - gridRes*0.5;
+//    m_gridmap.info.origin.position.y = origin.y() - gridRes*0.5;
+//    if (m_maxTreeDepth != m_treeDepth){
+//      m_gridmap.info.origin.position.x -= m_gridmap.info.resolution/2.0;
+//      m_gridmap.info.origin.position.y -= m_gridmap.info.resolution/2.0;
+//    }
+//
+//    // workaround for  multires. projection not working properly for inner nodes:
+//    // force re-building complete map
+//    if (m_maxTreeDepth < m_treeDepth)
+//      m_projectCompleteMap = true;
+//
+//
+//    if(m_projectCompleteMap){
+//      ROS_DEBUG("Rebuilding complete 2D map");
+//      m_gridmap.data.clear();
+//      // init to unknown:
+//      m_gridmap.data.resize(m_gridmap.info.width * m_gridmap.info.height, -1);
+//
+//    } else {
+//
+//       if (mapChanged(oldMapInfo, m_gridmap.info)){
+//          ROS_DEBUG("2D grid map size changed to %dx%d", m_gridmap.info.width, m_gridmap.info.height);
+//          adjustMapData(m_gridmap, oldMapInfo);
+//       }
+//       nav_msgs::OccupancyGrid::_data_type::iterator startIt;
+//       size_t mapUpdateBBXMinX = std::max(0, (int(m_updateBBXMin[0]) - int(m_paddedMinKey[0]))/int(m_multires2DScale));
+//       size_t mapUpdateBBXMinY = std::max(0, (int(m_updateBBXMin[1]) - int(m_paddedMinKey[1]))/int(m_multires2DScale));
+//       size_t mapUpdateBBXMaxX = std::min(int(m_gridmap.info.width-1), (int(m_updateBBXMax[0]) - int(m_paddedMinKey[0]))/int(m_multires2DScale));
+//       size_t mapUpdateBBXMaxY = std::min(int(m_gridmap.info.height-1), (int(m_updateBBXMax[1]) - int(m_paddedMinKey[1]))/int(m_multires2DScale));
+//
+//       assert(mapUpdateBBXMaxX > mapUpdateBBXMinX);
+//       assert(mapUpdateBBXMaxY > mapUpdateBBXMinY);
+//
+//       size_t numCols = mapUpdateBBXMaxX-mapUpdateBBXMinX +1;
+//
+//       // test for max idx:
+//       uint max_idx = m_gridmap.info.width*mapUpdateBBXMaxY + mapUpdateBBXMaxX;
+//       if (max_idx  >= m_gridmap.data.size())
+//         ROS_ERROR("BBX index not valid: %d (max index %zu for size %d x %d) update-BBX is: [%zu %zu]-[%zu %zu]", max_idx, m_gridmap.data.size(), m_gridmap.info.width, m_gridmap.info.height, mapUpdateBBXMinX, mapUpdateBBXMinY, mapUpdateBBXMaxX, mapUpdateBBXMaxY);
+//
+//       // reset proj. 2D map in bounding box:
+//       for (unsigned int j = mapUpdateBBXMinY; j <= mapUpdateBBXMaxY; ++j){
+//          std::fill_n(m_gridmap.data.begin() + m_gridmap.info.width*j+mapUpdateBBXMinX,
+//                      numCols, -1);
+//       }
+//
+//    }
+//}
+//
 
 OctomapWorld::CellStatus OctomapWorld::getCellStatusBoundingBox(
     const Eigen::Vector3d& point,

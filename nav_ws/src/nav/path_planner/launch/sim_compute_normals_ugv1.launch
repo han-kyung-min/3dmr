@@ -11,7 +11,7 @@
     <arg name="respawn_value" default="false" /> <!-- boolean: true, false -->
 
     <!-- normals computation -->
-    <node name="compute_normals_$(arg robot_name)" pkg="path_planner" type="compute_normals" respawn="$(arg respawn_value)" output="screen"> 
+    <node name="compute_normals_$(arg robot_name)" pkg="path_planner" type="compute_normals" respawn="$(arg respawn_value)">   <!--output="screen"--> 
 
         <rosparam file="$(find  path_planner)/launch/path_planner_octomap.yaml" /> 
 

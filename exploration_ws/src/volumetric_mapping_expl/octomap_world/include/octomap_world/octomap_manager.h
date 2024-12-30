@@ -62,7 +62,7 @@ namespace volumetric_mapping
         // By default, loads octomap parameters from the ROS parameter server.
         OctomapManager(const ros::NodeHandle &nh, const ros::NodeHandle &nh_private);
 
-        void publishAll();
+        void publishAll(const ros::Time& time );
         void publishAllEvent(const ros::TimerEvent &e);
 
         // Data insertion callbacks with TF frame resolution through the listener.

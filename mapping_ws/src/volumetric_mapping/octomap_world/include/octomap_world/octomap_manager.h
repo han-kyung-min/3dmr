@@ -51,6 +51,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace volumetric_mapping {
 
+typedef pcl::PointXYZ PCLPoint;
+typedef pcl::PointCloud<pcl::PointXYZ> PCLPointCloud;
+typedef octomap::OcTree OcTreeT;
+typedef octomap_msgs::GetOctomap OctomapSrv;
+//typedef octomap_msgs::BoundingBoxQuery BBXSrv;
+
 // An inherited class from OctomapWorld, which also handles the connection to
 // ROS via publishers, subscribers, service calls, etc.
 class OctomapManager : public OctomapWorld, private boost::noncopyable {
@@ -61,6 +67,7 @@ class OctomapManager : public OctomapWorld, private boost::noncopyable {
   OctomapManager(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
 
   void publishAll();
+
   void publishAllEvent(const ros::TimerEvent& e);
 
   // Data insertion callbacks with TF frame resolution through the listener.
@@ -107,6 +114,58 @@ public:
     
    boost::recursive_mutex interaction_mutex; // mutex to be locked for multi-thread interaction 
    
+//protected:
+    // hkm 2d gridmap
+	// void publishGridMap2D(const ros::Time& rostime, octomap::KeySet* free_cells, octomap::KeySet* occupied_cells); // hkm
+	void handlePreNodeTraversal(const ros::Time& rostime) ; // hkm
+	void handlePostNodeTraversal(const ros::Time& rostime); // hkm
+	void update2DMap(const OcTreeT::iterator& it, bool occupied) ;
+
+	inline unsigned mapIdx(int i, int j) const
+	{
+		return m_gridmap.info.width * j + i;
+	}
+	inline unsigned mapIdx(const octomap::OcTreeKey& key) const
+	{
+		return mapIdx((key[0] - m_paddedMinKey[0]) / m_multires2DScale,
+			   (key[1] - m_paddedMinKey[1]) / m_multires2DScale);
+	}
+	void publishProjected2DMap(const ros::Time& rostime) ;
+	void handleOccupiedNode(const OcTreeT::iterator& it) ;
+	void handleFreeNode(const OcTreeT::iterator& it) ;
+	void handleOccupiedNodeInBBX(const OcTreeT::iterator& it) ;
+	void handleFreeNodeInBBX(const OcTreeT::iterator& it) ;
+
+	virtual void handleNode(const OcTreeT::iterator& it) {};
+
+	  /// hook that is called when traversing all nodes of the updated Octree in the updated area (does nothing here)
+	virtual void handleNodeInBBX(const OcTreeT::iterator& it) {};
+
+	inline static void updateMinKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& min)
+	{
+		for (unsigned i = 0; i < 3; ++i)
+		  min[i] = std::min(in[i], min[i]);
+	};
+
+	inline static void updateMaxKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& max)
+	{
+	for (unsigned i = 0; i < 3; ++i)
+	  max[i] = std::max(in[i], max[i]);
+	};
+
+	/// Test if key is within update area of map (2D, ignores height)
+	inline bool isInUpdateBBX(const OcTreeT::iterator& it) const
+	{
+		// 2^(tree_depth-depth) voxels wide:
+		unsigned voxelWidth = (1 << (m_maxTreeDepth - it.getDepth()));
+		octomap::OcTreeKey key = it.getIndexKey(); // lower corner of voxel
+		return (key[0] + voxelWidth >= m_updateBBXMin[0]
+				&& key[1] + voxelWidth >= m_updateBBXMin[1]
+				&& key[0] <= m_updateBBXMax[0]
+				&& key[1] <= m_updateBBXMax[1]);
+	}
+
+
  private:
   // Sets up subscriptions based on ROS node parameters.
   void setParametersFromROS();
@@ -126,6 +185,7 @@ public:
                             const std::string& to_frame,
                             const ros::Time& timestamp,
                             Transformation* transform);
+
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
@@ -173,6 +233,9 @@ public:
   ros::Publisher occupied_nodes_pub_;
   ros::Publisher free_nodes_pub_;
 
+  // Publish 2d gridmap
+  ros::Publisher m_mapPub ; // hkm
+
   // Services!
   ros::ServiceServer reset_map_service_;
   ros::ServiceServer publish_all_service_;
@@ -199,6 +262,15 @@ public:
   std::deque<geometry_msgs::TransformStamped> transform_queue_;
   
   ros::Time time0_;
+
+  // hkm
+  bool m_publish2DMap ;
+
+  double m_occupancyMinZ;
+  double m_occupancyMaxZ;
+  bool m_filterSpeckles;
+
+  double mf_zmax, mf_zmin ;
 };
 
 }  // namespace volumetric_mapping

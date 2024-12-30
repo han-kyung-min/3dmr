@@ -10,6 +10,6 @@
 	</include>	
 	
 	<!--node name="rviz" pkg="rviz" type="rviz" respawn="false" args="-d $(find path_planner)/rviz/sim_path_planner.rviz" -->
-    <node name="rviz" pkg="rviz" type="rviz" respawn="false" args="-d $(find path_planner)/rviz/sim_path_planner_single.rviz">
+    <node name="rviz" pkg="rviz" type="rviz" respawn="false" args="-d $(find path_planner)/rviz/sim_path_planner_single_2d.rviz">
 	</node> 
 </launch>

@@ -202,8 +202,8 @@ void WorldBase::insertPointcloud(const Transformation& T_G_sensor,
 void WorldBase::insertPointcloud(
     const Transformation& T_G_sensor,
     const pcl::PointCloud<pcl::PointXYZ>::Ptr& pointcloud_sensor) {
-  if (!isPointWeighingSet()) {
-    insertPointcloudIntoMapImpl(T_G_sensor, pointcloud_sensor);
+  if (!isPointWeighingSet()) { // is true
+    insertPointcloudIntoMapImpl(T_G_sensor, pointcloud_sensor);  // This line is called   HKM
   } else {
     std::vector<double> weights;
     computeWeights(pointcloud_sensor, &weights);

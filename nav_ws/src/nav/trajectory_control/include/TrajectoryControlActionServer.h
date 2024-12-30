@@ -263,7 +263,8 @@ protected:
     boost::recursive_mutex action_mutex;    
     
     // hkm
-    std::ofstream m_fout_traj;
+    std::string mstr_traj_path ;
+    std::ofstream m_fstream_traj;
     int mn_cnt ;
     double mf_prev_time ;
     visualization_msgs::MarkerArray markerTrajArr_;

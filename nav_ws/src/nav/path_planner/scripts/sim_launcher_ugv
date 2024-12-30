@@ -124,9 +124,15 @@ else
 
     #- Mapping (Octomap) + Normal Estimation
     #xterm $XTERM_OPTIONS -e "echo $ROBOT_NAME mapping; roslaunch path_planner sim_mapping_ugv2.launch robot_name:=$ROBOT_NAME use_laser_assembler:=true; bash" &
-    open_term "$ROBOT_NAME"mapping  "echo $ROBOT_NAME mapping; roslaunch $ROS_LOG_OPTIONS path_planner sim_volumetric_mapping_ugv2.launch robot_name:=$ROBOT_NAME use_laser_assembler:=true; bash" &
-    sleep 1
+    
+###########################################################################    
+##          Otomap Launcher
+##  runs nodes  in the volumetric_mapping package
+###########################################################################
 
+    open_term "$ROBOT_NAME"mapping  "echo $ROBOT_NAME mapping; roslaunch $ROS_LOG_OPTIONS path_planner sim_volumetric_mapping_ugv2.launch robot_name:=$ROBOT_NAME use_laser_assembler:=true; bash" &
+     sleep 1
+    
 fi 
 
 ########################################################################################################

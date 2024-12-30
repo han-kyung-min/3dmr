@@ -2,14 +2,14 @@
 
 <launch>
 
-    <arg name="robot_name" default="ugv2" />
+    <arg name="robot_name" default="ugv1" />  <!-- was uvg2 -->
     <arg name="simulator" default="/vrep" />
 
-    <arg name="sensor_max_range" default="15.0" /> <!-- was 20, decreased to 15 for exploration and decreasing memory load -->
+    <arg name="sensor_max_range" default="2.0" /> <!--default: 15   decreased to 15 for exploration and decreasing memory load -->
 
     <arg name="laser_frame_name" default="$(arg robot_name)/laser"/>  
 
-    <arg name="use_laser_assembler" default="false" /> <!-- boolean: true, false -->
+    <arg name="use_laser_assembler" default="false" /> <!-- boolean: true,  this  false  by default -->
     
     <arg name="octomap_cloud_in" default="$(arg simulator)/$(arg robot_name)/scan_point_cloud_color" unless="$(arg use_laser_assembler)"/>
     <arg name="octomap_cloud_in" default="$(arg simulator)/$(arg robot_name)/dynamic_point_cloud" if="$(arg use_laser_assembler)"/>
